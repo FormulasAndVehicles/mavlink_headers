@@ -10550,6 +10550,69 @@ TEST(common_interop, FENCE_STATUS)
 }
 #endif
 
+TEST(common, SETPOINT_MOTOR)
+{
+    mavlink::mavlink_message_t msg;
+    mavlink::MsgMap map1(msg);
+    mavlink::MsgMap map2(msg);
+
+    mavlink::common::msg::SETPOINT_MOTOR packet_in{};
+    packet_in.time_usec = 93372036854775807ULL;
+    packet_in.setpoint = {{ 73.0, 74.0, 75.0, 76.0, 77.0, 78.0, 79.0, 80.0 }};
+
+    mavlink::common::msg::SETPOINT_MOTOR packet1{};
+    mavlink::common::msg::SETPOINT_MOTOR packet2{};
+
+    packet1 = packet_in;
+
+    //std::cout << packet1.to_yaml() << std::endl;
+
+    packet1.serialize(map1);
+
+    mavlink::mavlink_finalize_message(&msg, 1, 1, packet1.MIN_LENGTH, packet1.LENGTH, packet1.CRC_EXTRA);
+
+    packet2.deserialize(map2);
+
+    EXPECT_EQ(packet1.time_usec, packet2.time_usec);
+    EXPECT_EQ(packet1.setpoint, packet2.setpoint);
+}
+
+#ifdef TEST_INTEROP
+TEST(common_interop, SETPOINT_MOTOR)
+{
+    mavlink_message_t msg;
+
+    // to get nice print
+    memset(&msg, 0, sizeof(msg));
+
+    mavlink_setpoint_motor_t packet_c {
+         93372036854775807ULL, { 73.0, 74.0, 75.0, 76.0, 77.0, 78.0, 79.0, 80.0 }
+    };
+
+    mavlink::common::msg::SETPOINT_MOTOR packet_in{};
+    packet_in.time_usec = 93372036854775807ULL;
+    packet_in.setpoint = {{ 73.0, 74.0, 75.0, 76.0, 77.0, 78.0, 79.0, 80.0 }};
+
+    mavlink::common::msg::SETPOINT_MOTOR packet2{};
+
+    mavlink_msg_setpoint_motor_encode(1, 1, &msg, &packet_c);
+
+    // simulate message-handling callback
+    [&packet2](const mavlink_message_t *cmsg) {
+        MsgMap map2(cmsg);
+
+        packet2.deserialize(map2);
+    } (&msg);
+
+    EXPECT_EQ(packet_in.time_usec, packet2.time_usec);
+    EXPECT_EQ(packet_in.setpoint, packet2.setpoint);
+
+#ifdef PRINT_MSG
+    PRINT_MSG(msg);
+#endif
+}
+#endif
+
 TEST(common, MAG_CAL_REPORT)
 {
     mavlink::mavlink_message_t msg;
